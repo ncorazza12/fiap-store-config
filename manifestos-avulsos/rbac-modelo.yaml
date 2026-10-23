@@ -1,0 +1,124 @@
+# rbac-modelo.yaml
+# JUSTIFICATIVA GERAL: ClusterRoles foram usadas para agrupar permissões reaproveitáveis.
+# O acesso é restrito aos namespaces via RoleBindings, exceto para o SRE que requer leitura global de nós e PVs.
+
+# ==========================================
+# 1. PERFIL: AUDITOR
+# ==========================================
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata: { name: perfil-auditor }
+rules:
+- apiGroups: ["", "apps", "batch", "autoscaling", "rbac.authorization.k8s.io"]
+  resources: ["pods", "services", "configmaps", "deployments", "jobs", "cronjobs", "hpa", "roles", "rolebindings", "clusterroles", "clusterrolebindings"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: { name: auditor-dev, namespace: store-dev }
+subjects: [{ kind: Group, name: "fiap:auditor", apiGroup: rbac.authorization.k8s.io }]
+roleRef: { kind: ClusterRole, name: perfil-auditor, apiGroup: rbac.authorization.k8s.io }
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: { name: auditor-prod, namespace: store-prod }
+subjects: [{ kind: Group, name: "fiap:auditor", apiGroup: rbac.authorization.k8s.io }]
+roleRef: { kind: ClusterRole, name: perfil-auditor, apiGroup: rbac.authorization.k8s.io }
+
+# ==========================================
+# 2. PERFIL: DEV
+# ==========================================
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata: { name: perfil-dev-write }
+rules:
+- apiGroups: ["", "apps", "batch", "autoscaling"]
+  resources: ["pods", "services", "configmaps", "deployments", "jobs", "horizontalpodautoscalers"]
+  verbs: ["create", "update", "patch", "delete", "get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["pods/log", "pods/exec"]
+  verbs: ["get", "list", "create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: { name: dev-dev-write, namespace: store-dev }
+subjects: [{ kind: Group, name: "fiap:dev", apiGroup: rbac.authorization.k8s.io }]
+roleRef: { kind: ClusterRole, name: perfil-dev-write, apiGroup: rbac.authorization.k8s.io }
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: { name: dev-prod-read, namespace: store-prod }
+subjects: [{ kind: Group, name: "fiap:dev", apiGroup: rbac.authorization.k8s.io }]
+roleRef: { kind: ClusterRole, name: perfil-auditor, apiGroup: rbac.authorization.k8s.io }
+
+# ==========================================
+# 3. PERFIL: QA
+# ==========================================
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata: { name: perfil-qa-dev-extra }
+rules:
+- apiGroups: ["batch"]
+  resources: ["jobs"]
+  verbs: ["create", "delete"]
+- apiGroups: [""]
+  resources: ["pods/exec"]
+  verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: { name: qa-dev-read, namespace: store-dev }
+subjects: [{ kind: Group, name: "fiap:qa", apiGroup: rbac.authorization.k8s.io }]
+roleRef: { kind: ClusterRole, name: perfil-auditor, apiGroup: rbac.authorization.k8s.io }
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: { name: qa-dev-write, namespace: store-dev }
+subjects: [{ kind: Group, name: "fiap:qa", apiGroup: rbac.authorization.k8s.io }]
+roleRef: { kind: ClusterRole, name: perfil-qa-dev-extra, apiGroup: rbac.authorization.k8s.io }
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: { name: qa-prod-read, namespace: store-prod }
+subjects: [{ kind: Group, name: "fiap:qa", apiGroup: rbac.authorization.k8s.io }]
+roleRef: { kind: ClusterRole, name: perfil-auditor, apiGroup: rbac.authorization.k8s.io }
+
+# ==========================================
+# 4. PERFIL: SRE
+# ==========================================
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata: { name: perfil-sre-namespace }
+rules:
+- apiGroups: ["", "apps", "batch", "autoscaling"]
+  resources: ["pods", "services", "configmaps", "secrets", "persistentvolumeclaims", "deployments", "statefulsets", "daemonsets", "jobs"]
+  verbs: ["create", "update", "patch", "delete", "get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["pods/log", "pods/exec"]
+  verbs: ["get", "list", "create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: { name: sre-dev, namespace: store-dev }
+subjects: [{ kind: Group, name: "fiap:sre", apiGroup: rbac.authorization.k8s.io }]
+roleRef: { kind: ClusterRole, name: perfil-sre-namespace, apiGroup: rbac.authorization.k8s.io }
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: { name: sre-prod, namespace: store-prod }
+subjects: [{ kind: Group, name: "fiap:sre", apiGroup: rbac.authorization.k8s.io }]
+roleRef: { kind: ClusterRole, name: perfil-sre-namespace, apiGroup: rbac.authorization.k8s.io }
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata: { name: perfil-sre-global }
+rules:
+- apiGroups: ["", "storage.k8s.io"]
+  resources: ["nodes", "namespaces", "persistentvolumes", "storageclasses"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata: { name: sre-global-binding }
+subjects: [{ kind: Group, name: "fiap:sre", apiGroup: rbac.authorization.k8s.io }]
+roleRef: { kind: ClusterRole, name: perfil-sre-global, apiGroup: rbac.authorization.k8s.io }
