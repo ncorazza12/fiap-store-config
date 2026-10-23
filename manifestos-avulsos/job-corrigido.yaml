@@ -1,0 +1,22 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: relatorio-corrigido
+  namespace: store-dev
+spec:
+  backoffLimit: 2
+  template:
+    spec:
+      containers:
+      - name: worker
+        image: busybox
+        command: ["/bin/sh", "-c"]
+        args: ["echo 'Relatório gerado com sucesso'"]
+        resources:
+          requests:
+            cpu: "10m"
+            memory: "16Mi"
+          limits:
+            cpu: "50m"
+            memory: "32Mi"
+      restartPolicy: Never

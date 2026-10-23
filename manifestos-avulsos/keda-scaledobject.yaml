@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: store-worker
+  namespace: store-dev
+spec:
+  replicas: 0  # Começa em ZERO!
+  selector:
+    matchLabels:
+      app: store-worker
+  template:
+    metadata:
+      labels:
+        app: store-worker
+    spec:
+      containers:
+      - name: worker
+        image: redis:7-alpine
+        # O worker fica lendo a fila e processando (removendo) itens a cada 2s
+        command: ["/bin/sh", "-c"]
+        args: ["while true; do redis-cli -h redis LPOP pedidos; sleep 2; done"]
+        resources:
+          requests:
+            cpu: "10m"
+            memory: "16Mi"
+          limits:
+            cpu: "50m"
+            memory: "32Mi"
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: store-worker-fila
+  namespace: store-dev
+spec:
+  scaleTargetRef:
+    name: store-worker
+  minReplicaCount: 0
+  maxReplicaCount: 10
+  pollingInterval: 5      # KEDA verifica a fila a cada 5s
+  cooldownPeriod: 15      # Espera 15s com a fila vazia antes de matar os pods
+  triggers:
+  - type: redis
+    metadata:
+      address: redis.store-dev.svc.cluster.local:6379
+      listName: pedidos
+      listLength: "5"     # 1 Pod para cada 5 itens na fila

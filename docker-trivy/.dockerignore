@@ -1,0 +1,4 @@
+.git
+Dockerfile.*
+relatorio-*.txt
+store-api-sbom.json

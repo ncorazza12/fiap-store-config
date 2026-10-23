@@ -1,0 +1,22 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: relatorio-quebrado
+  namespace: store-dev
+spec:
+  backoffLimit: 2
+  template:
+    spec:
+      containers:
+      - name: worker
+        image: busybox
+        command: ["/bin/sh", "-c"]
+        args: ["cat /arquivo-inexistente.txt"]
+        resources:
+          requests:
+            cpu: "10m"
+            memory: "16Mi"
+          limits:
+            cpu: "50m"
+            memory: "32Mi"
+      restartPolicy: Never

@@ -1,0 +1,26 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Importa a base
+resources:
+- ../../base
+- namespace.yaml
+
+# Força todos os recursos a irem para este namespace
+namespace: store-dev
+
+# Define as réplicas
+replicas:
+- name: store-api
+  count: 1
+- name: store-front
+  count: 1
+- name: store-worker
+  count: 1
+
+# Aplica as modificações específicas de Dev
+patches:
+- path: patch-dev.yaml
+  target:
+    kind: Deployment
+    name: store-api

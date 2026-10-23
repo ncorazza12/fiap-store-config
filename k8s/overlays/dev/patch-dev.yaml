@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: store-api
+spec:
+  template:
+    spec:
+      containers:
+      - name: api
+        env:
+        - name: APP_ENV
+          value: "dev"
+        resources:
+          requests:
+            cpu: "10m"
+            memory: "16Mi"
+          limits:
+            cpu: "50m"
+            memory: "32Mi"

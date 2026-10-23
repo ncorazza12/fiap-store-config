@@ -1,0 +1,20 @@
+# Estágio 1: Builder
+FROM python:3.12-slim AS builder
+WORKDIR /app
+# Criar um virtual environment
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+COPY requirements-secure.txt .
+# Instalar dependências no venv
+RUN pip install --no-cache-dir -r requirements-secure.txt
+
+# Estágio 2: Final (Distroless)
+FROM gcr.io/distroless/python3-debian12:nonroot
+WORKDIR /app
+# Copiar apenas o venv pronto do estágio builder
+COPY --from=builder /opt/venv /opt/venv
+COPY main.py .
+# Configurar o PATH para usar o Python do venv
+ENV PATH="/opt/venv/bin:$PATH"
+# O usuário nonroot (UID 65532) já é o padrão nesta imagem base
+CMD ["python", "main.py"]

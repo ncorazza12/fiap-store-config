@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: store-api-rollout
+  namespace: store-dev
+spec:
+  replicas: 3
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 0   # Garante que nenhum Pod antigo caia antes do novo estar pronto
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: store-api-rollout
+  template:
+    metadata:
+      labels:
+        app: store-api-rollout
+    spec:
+      terminationGracePeriodSeconds: 45  # Tempo suficiente para conexões ativas terminarem
+      containers:
+      - name: api
+        image: python:3.9-alpine
+        # Forma EXEC: O Python é o PID 1 e agora escuta o sinal de desligamento (SIGTERM)
+        command: ["python", "-m", "http.server", "8000"]
+        ports:
+        - containerPort: 8000
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8000
+          initialDelaySeconds: 2
+          periodSeconds: 2
+        lifecycle:
+          preStop:
+            exec:
+              # Aguarda os iptables do Kubernetes atualizarem antes de matar o servidor
+              command: ["/bin/sh", "-c", "sleep 10"]
+        resources:
+          requests:
+            cpu: "10m"
+            memory: "16Mi"
+          limits:
+            cpu: "50m"
+            memory: "32Mi"

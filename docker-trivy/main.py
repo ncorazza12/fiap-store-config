@@ -1,0 +1,1 @@
+print("Iniciando Store API...")

@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: store-api-rollout
+  namespace: store-dev
+spec:
+  replicas: 3
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: store-api-rollout
+  template:
+    metadata:
+      labels:
+        app: store-api-rollout
+    spec:
+      terminationGracePeriodSeconds: 5
+      containers:
+      - name: api
+        image: python:3.9-alpine
+        # ENTRYPOINT em shell form (engole o sinal SIGTERM)
+        command: ["/bin/sh", "-c"]
+        args: ["python -m http.server 8000"]
+        ports:
+        - containerPort: 8000
+        resources:
+          requests:
+            cpu: "10m"
+            memory: "16Mi"
+          limits:
+            cpu: "50m"
+            memory: "32Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: store-api-rollout-svc
+  namespace: store-dev
+spec:
+  selector:
+    app: store-api-rollout
+  ports:
+  - port: 8000
